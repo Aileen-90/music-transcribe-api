@@ -1,0 +1,18 @@
+# backend/requirements.txt
+flask>=2.0.0
+flask-cors>=3.0.10
+basic-pitch[tf]
+librosa>=0.10.0
+pretty_midi>=0.2.10
+numpy>=1.21.0
+gunicorn>=20.1.0
+Werkzeug>=2.0.0
+librosa>=0.8.0
+mir-eval>=0.6
+pretty-midi>=0.2.9
+resampy<0.4.3,>=0.2.2        
+scikit-learn
+scipy>=1.4.1
+tensorflow<2.15.1,>=2.4.1
+python_version >= "3.11"
+typing-extensions
