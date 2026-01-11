@@ -7,7 +7,6 @@ pretty_midi>=0.2.10
 numpy>=1.21.0
 gunicorn>=20.1.0
 Werkzeug>=2.0.0
-librosa>=0.8.0
 mir-eval>=0.6
 pretty-midi>=0.2.9
 resampy<0.4.3,>=0.2.2        
