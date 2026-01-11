@@ -13,6 +13,5 @@ pretty-midi>=0.2.9
 resampy<0.4.3,>=0.2.2        
 scikit-learn
 scipy>=1.4.1
-tensorflow<2.15.1,>=2.4.1
-python_version >= "3.11"
+tensorflow<2.15.1,>=2.4.1; python_version >= "3.11"
 typing-extensions
