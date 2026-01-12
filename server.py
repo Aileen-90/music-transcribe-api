@@ -29,6 +29,7 @@ def allowed_file(filename):
 @app.route('/')
 def home():
     """首页，检查服务是否正常"""
+    print("收到根路径请求")  # Railway 日志能看到
     return jsonify({
         'status': 'running',
         'service': 'Music Transcription API',
@@ -163,7 +164,10 @@ def download_file(filename):
 
 if __name__ == '__main__':
     print("🚀 启动音乐转录API服务器...")
-    print("访问地址: http://localhost:5000")
-    print("API文档: http://localhost:5000/")
+    # 获取 Railway 提供的端口
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    print(f"监听端口: {port}")
+    print(f"Railway 域名: https://music-transcribe-api-production.up.railway.app")
+    # print("访问地址: http://localhost:5000")
+    # print("API文档: http://localhost:5000/")
+    app.run(host='0.0.0.0', port=port, debug=False)
