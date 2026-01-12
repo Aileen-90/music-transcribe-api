@@ -1,17 +1,19 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装最小依赖
+# 1. 安装依赖并配置 FUSE
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
+    fuse \
     libfuse2 \
+    && echo "user_allow_other" >> /etc/fuse.conf \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载并安装 MuseScore
+# 2. 使用 --appimage-extract-and-run 参数
 RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-x86_64.AppImage \
     && chmod +x MuseScore-4.2.1.240530503-x86_64.AppImage \
-    && ./MuseScore-4.2.1.240530503-x86_64.AppImage --appimage-extract \
+    && ./MuseScore-4.2.1.240530503-x86_64.AppImage --appimage-extract-and-run \
     && mv squashfs-root /opt/musescore \
     && ln -s /opt/musescore/AppRun /usr/local/bin/musescore \
     && rm MuseScore-4.2.1.240530503-x86_64.AppImage
