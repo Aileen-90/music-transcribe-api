@@ -1,23 +1,18 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装依赖
+# 1. 安装必要依赖
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载 appimagetool 并使用它提取
-RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
-    && chmod +x appimagetool-x86_64.AppImage \
-    && wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-x86_64.AppImage \
-    && mkdir -p /opt/musescore \
-    && cd /opt/musescore \
-    && /appimagetool-x86_64.AppImage --appimage-extract \
-    && mv squashfs-root/AppRun ./ \
-    && /appimagetool-x86_64.AppImage --appimage-extract MuseScore-4.2.1.240530503-x86_64.AppImage \
-    && ln -s /opt/musescore/AppRun /usr/local/bin/musescore \
-    && rm -f /appimagetool-x86_64.AppImage /MuseScore-4.2.1.240530503-x86_64.AppImage
+# 2. 下载并安装 .deb 包
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-x86_64.deb -O /tmp/musescore.deb \
+    && apt-get update \
+    && apt-get install -y /tmp/musescore.deb 2>/dev/null || apt-get install -f -y \
+    && rm /tmp/musescore.deb \
+    && rm -rf /var/lib/apt/lists/*
 
 # 2. 验证安装
 RUN mscore --version || echo "MuseScore版本信息"
