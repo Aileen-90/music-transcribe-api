@@ -1,0 +1,22 @@
+# railway.toml
+[build]
+builder = "dockerfile"
+
+[service]
+name = "music-transcribe-api"
+port = 8080
+
+[service.env]
+UPLOAD_FOLDER = "/app/uploads"
+FLASK_ENV = "production"
+
+[[service.ports]]
+port = 8080
+protocol = "tcp"
+
+[deploy]
+startCommand = "python server.py"
+restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/"
+healthcheckTimeout = 200
+healthcheckInterval = 10

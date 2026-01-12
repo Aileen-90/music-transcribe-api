@@ -4,6 +4,7 @@ from flask_cors import CORS
 import os
 import tempfile
 import uuid
+import subprocess
 from werkzeug.utils import secure_filename
 from transcribe import MusicTranscriber  # 导入我们的转录类
 
@@ -22,6 +23,32 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
+def check_musescore_installed():
+    """检查MuseScore是否安装"""
+    try:
+        # 尝试运行 musescore 或 mscore
+        for cmd in ['musescore', 'mscore', '/usr/bin/musescore', '/usr/bin/mscore']:
+            try:
+                result = subprocess.run(
+                    [cmd, '--version'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    print(f"✅ MuseScore 找到: {cmd}")
+                    return cmd
+            except:
+                continue
+        print("❌ MuseScore 未找到")
+        return None
+    except Exception as e:
+        print(f"检查MuseScore时出错: {e}")
+        return None
+
+# 在应用启动时检查
+MUSESCORE_PATH = check_musescore_installed()
+
 def allowed_file(filename):
     """检查文件类型是否允许"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -30,16 +57,26 @@ def allowed_file(filename):
 def home():
     """首页，检查服务是否正常"""
     print("收到根路径请求")  # Railway 日志能看到
+    endpoints = {
+        '/': '服务状态',
+        '/health': '健康检查',
+        '/api/transcribe': '音频转录',
+        '/api/download/<filename>': '下载文件'
+    }
+    
+    # 如果MuseScore可用，添加PDF相关接口
+    if MUSESCORE_PATH:
+        endpoints.update({
+            '/api/generate-pdf': '生成PDF乐谱',
+            '/api/convert-to-pdf/<midi_filename>': '转换MIDI为PDF',
+            '/api/check-pdf-support': '检查PDF支持'
+        })
+    
     return jsonify({
         'status': 'running',
         'service': 'Music Transcription API',
         'version': '1.0.0',
-        'endpoints': {
-            '/': '服务状态',
-            '/api/health': '健康检查',
-            '/api/transcribe': '音频转录',
-            '/api/download/<filename>': '下载文件'
-        }
+        'endpoints': endpoints
     })
 
 @app.route('/health', methods=['GET'])
@@ -117,6 +154,11 @@ def transcribe_audio():
                 'file_size': file_size
             }
             
+            # 如果MuseScore可用，添加PDF转换信息
+            if MUSESCORE_PATH:
+                response_data['pdf_supported'] = True
+                response_data['pdf_conversion_url'] = f'/api/convert-to-pdf/{download_filename}'
+            
             print(f"转录成功: {response_data}")
             return jsonify(response_data)
         else:
@@ -162,12 +204,174 @@ def download_file(filename):
             'error': str(e)
         }), 500
 
+@app.route('/api/generate-pdf', methods=['POST'])
+def generate_pdf():
+    """将MIDI转换为PDF乐谱"""
+    try:
+        print("\n=== 开始生成PDF ===")
+        
+        # 检查MuseScore是否可用
+        if not MUSESCORE_PATH:
+            return jsonify({
+                'success': False,
+                'error': 'PDF生成功能不可用（MuseScore未安装）',
+                'available': False
+            }), 503
+        
+        # 检查是否有文件上传
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '没有上传文件'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '没有选择文件'}), 400
+        
+        # 保存上传的MIDI文件
+        original_filename = secure_filename(file.filename)
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # 确保是.mid文件
+        if not original_filename.lower().endswith('.mid'):
+            return jsonify({'success': False, 'error': '请上传MIDI文件'}), 400
+        
+        # 保存文件
+        midi_filename = f"input_{unique_id}.mid"
+        midi_path = os.path.join(app.config['UPLOAD_FOLDER'], midi_filename)
+        file.save(midi_path)
+        
+        print(f"MIDI文件保存到: {midi_path}")
+        print(f"文件大小: {os.path.getsize(midi_path)} bytes")
+        
+        # 生成PDF文件名
+        pdf_filename = f"score_{unique_id}.pdf"
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
+        
+        print(f"开始转换: {midi_path} -> {pdf_path}")
+        print(f"使用MuseScore路径: {MUSESCORE_PATH}")
+        
+        # 执行转换命令
+        cmd = [
+            MUSESCORE_PATH,
+            '-o', pdf_path,  # 输出PDF
+            midi_path        # 输入MIDI
+        ]
+        
+        print(f"执行命令: {' '.join(cmd)}")
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30  # 30秒超时
+        )
+        
+        if result.returncode != 0:
+            print(f"MuseScore错误: {result.stderr}")
+            return jsonify({
+                'success': False,
+                'error': f'转换失败: {result.stderr[:100]}',
+                'details': result.stderr
+            }), 500
+        
+        # 检查PDF是否生成
+        if not os.path.exists(pdf_path):
+            return jsonify({'success': False, 'error': 'PDF文件未生成'}), 500
+        
+        pdf_size = os.path.getsize(pdf_path)
+        print(f"✅ PDF生成成功: {pdf_path} ({pdf_size} bytes)")
+        
+        # 返回PDF文件
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=f"乐谱_{unique_id}.pdf",
+            mimetype='application/pdf'
+        )
+        
+    except subprocess.TimeoutExpired:
+        print("❌ PDF转换超时")
+        return jsonify({'success': False, 'error': '转换超时，请稍后重试'}), 500
+    except Exception as e:
+        print(f"❌ PDF生成错误: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'服务器错误: {str(e)}'}), 500
+
+@app.route('/api/convert-to-pdf/<midi_filename>', methods=['GET'])
+def convert_existing_to_pdf(midi_filename):
+    """将已存在的MIDI文件转换为PDF"""
+    try:
+        print(f"\n=== 转换已有MIDI到PDF: {midi_filename} ===")
+        
+        if not MUSESCORE_PATH:
+            return jsonify({
+                'success': False,
+                'error': 'PDF功能不可用'
+            }), 503
+        
+        # 安全处理文件名
+        safe_filename = secure_filename(midi_filename)
+        midi_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+        
+        if not os.path.exists(midi_path):
+            return jsonify({'success': False, 'error': 'MIDI文件不存在'}), 404
+        
+        # 生成PDF文件名
+        base_name = os.path.splitext(safe_filename)[0]
+        pdf_filename = f"{base_name}.pdf"
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
+        
+        print(f"转换: {midi_path} -> {pdf_path}")
+        
+        # 执行转换
+        cmd = [MUSESCORE_PATH, '-o', pdf_path, midi_path]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return jsonify({
+                'success': False,
+                'error': '转换失败'
+            }), 500
+        
+        # 返回PDF下载信息
+        return jsonify({
+            'success': True,
+            'message': 'PDF生成成功',
+            'pdf_filename': pdf_filename,
+            'download_url': f'/api/download/{pdf_filename}',
+            'midi_original': safe_filename
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/check-pdf-support', methods=['GET'])
+def check_pdf_support():
+    """检查PDF生成功能是否可用"""
+    return jsonify({
+        'success': True,
+        'pdf_supported': MUSESCORE_PATH is not None,
+        'musescore_path': MUSESCORE_PATH,
+        'message': 'PDF生成功能已启用' if MUSESCORE_PATH else 'PDF生成功能不可用'
+    })
+
 if __name__ == '__main__':
     print("🚀 启动音乐转录API服务器...")
     # 获取 Railway 提供的端口
     port = int(os.environ.get('PORT', 5000))
     print(f"监听端口: {port}")
     print(f"Railway 域名: https://music-transcribe-api-production.up.railway.app")
-    # print("访问地址: http://localhost:5000")
-    # print("API文档: http://localhost:5000/")
+    
+    # 打印PDF支持状态
+    if MUSESCORE_PATH:
+        print("✅ PDF乐谱生成功能已启用")
+    else:
+        print("⚠️  PDF乐谱生成功能不可用（MuseScore未安装）")
+    
     app.run(host='0.0.0.0', port=port, debug=False)

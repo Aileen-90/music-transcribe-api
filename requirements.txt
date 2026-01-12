@@ -14,3 +14,7 @@ scikit-learn
 scipy>=1.4.1
 tensorflow<2.15.1,>=2.4.1; python_version >= "3.11"
 typing-extensions
+gunicorn==21.2.0  # 必须安装这个
+werkzeug>=2.3.0
+music21>=8.0.0
+requests>=2.31.0
