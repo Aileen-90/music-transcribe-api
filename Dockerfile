@@ -1,22 +1,22 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装必要依赖
+# 1. 安装依赖
 RUN apt-get update && apt-get install -y \
-    wget \
+    curl \
     ca-certificates \
     tar \
     xz-utils \
     libgl1 \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 从 GitHub 直接下载 MuseScore
-RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-linux-x86_64.tar.xz \
-    && tar -xf MuseScore-4.2.1.240530503-linux-x86_64.tar.xz -C /opt \
+# 2. 尝试下载并显示详细信息
+RUN curl -v -L -o musescore.tar.xz https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-linux-x86_64.tar.xz \
+    && echo "下载完成，文件大小:" && ls -lh musescore.tar.xz \
+    && tar -xf musescore.tar.xz -C /opt \
     && mv /opt/MuseScore-4.2.1.240530503-linux-x86_64 /opt/musescore \
     && ln -s /opt/musescore/bin/mscore /usr/local/bin/mscore \
-    && rm MuseScore-4.2.1.240530503-linux-x86_64.tar.xz
+    && rm musescore.tar.xz
 
 # 3. 验证
 RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 安装完成"
