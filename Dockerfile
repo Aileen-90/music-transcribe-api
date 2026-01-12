@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     gnupg \
-    software-properties-common \
+    apt-transport-https \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
