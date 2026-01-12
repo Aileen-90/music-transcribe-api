@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     software-properties-common \
-    && wget -qO - https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x6D2C9A8A9A5E9B8B | apt-key add - \
-    && echo "deb http://ppa.launchpad.net/mscore-ubuntu/mscore-stable/ubuntu focal main" >> /etc/apt/sources.list.d/musescore.list \
+    && wget -qO /usr/share/keyrings/musescore-keyring.gpg https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x6D2C9A8A9A5E9B8B \
+    && echo "deb [signed-by=/usr/share/keyrings/musescore-keyring.gpg] http://ppa.launchpad.net/mscore-ubuntu/mscore-stable/ubuntu focal main" >> /etc/apt/sources.list.d/musescore.list \
     && apt-get update \
     && apt-get install -y musescore \
     && rm -rf /var/lib/apt/lists/*
