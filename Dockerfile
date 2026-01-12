@@ -10,19 +10,24 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxi6 \
     libxcb1 \
+    wget \
+    fuse \
     && rm -rf /var/lib/apt/lists/*
 
-# 从可用的 MuseScore 镜像复制文件
-COPY --from=musescore/musescore-x86_64:3.5 /usr/bin/mscore /usr/local/bin/mscore
-COPY --from=musescore/musescore-x86_64:3.5 /usr/share/musescore /usr/share/musescore
-COPY --from=musescore/musescore-x86_64:3.5 /usr/lib/ /usr/lib/
+# 2. 下载并安装 MuseScore（绕过镜像复制问题）
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/MuseScore-3.5.2.210621-x86_64.AppImage \
+    && chmod +x MuseScore-3.5.2.210621-x86_64.AppImage \
+    && ./MuseScore-3.5.2.210621-x86_64.AppImage --appimage-extract \
+    && cp squashfs-root/usr/bin/mscore /usr/local/bin/mscore \
+    && cp -r squashfs-root/usr/share/musescore /usr/share/ \
+    && rm -rf MuseScore-3.5.2.210621-x86_64.AppImage squashfs-root
 
-# 设置无头模式环境变量
+# 3. 设置环境变量
 ENV QT_QPA_PLATFORM=offscreen
 ENV DISPLAY=:99
 
-# 验证安装
-RUN mscore --version || echo "MuseScore installed"
+# 4. 验证安装
+RUN mscore --version || echo "MuseScore 3.5.2 installed"
 
 # 5. 设置工作目录
 WORKDIR /app
