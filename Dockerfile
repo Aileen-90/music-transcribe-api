@@ -3,12 +3,13 @@ FROM python:3.10-slim
 
 # 安装必要的依赖
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libxi6 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 从可用的 MuseScore 镜像复制文件
