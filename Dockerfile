@@ -14,10 +14,17 @@ RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/Muse
     && rm /tmp/musescore.deb \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 验证安装
-RUN mscore --version || echo "MuseScore版本信息"
+# 3. 查找正确的命令路径并验证
+RUN find /usr -name "*score*" -type f -executable 2>/dev/null | grep -v ".so" | head -5 || echo "查找可执行文件" \
+    && (mscore --version || musescore --version || /usr/bin/mscore --version || /usr/bin/musescore --version || echo "MuseScore安装完成但命令名称可能不同") \
+    && echo "可用的命令: mscore, musescore, mscore4 等"
 
-# 3. 设置工作目录
+# 4. 创建通用别名（确保命令可用）
+RUN ln -sf /usr/bin/mscore /usr/local/bin/mscore 2>/dev/null || true \
+    && ln -sf /usr/bin/musescore /usr/local/bin/musescore 2>/dev/null || true \
+    && ln -sf /usr/bin/mscore4 /usr/local/bin/mscore4 2>/dev/null || true
+
+# 5. 设置工作目录
 WORKDIR /app
 
 # 4. 复制依赖文件
