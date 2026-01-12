@@ -10,13 +10,14 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 添加 MuseScore PPA（使用官方方法）
-RUN wget -qO- https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF446F2715C632854AE37CFC57A9FB82F99C5E97F | gpg --dearmor > /usr/share/keyrings/musescore1.gpg \
-    && wget -qO- https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xA465CB739A21C396FB7FC1C68F66051A3A258030 | gpg --dearmor > /usr/share/keyrings/musescore2.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/musescore1.gpg,/usr/share/keyrings/musescore2.gpg] http://ppa.launchpad.net/mscore-ubuntu/mscore-stable/ubuntu focal main" > /etc/apt/sources.list.d/musescore.list \
-    && apt-get update \
-    && apt-get install -y musescore \
-    && rm -rf /var/lib/apt/lists/*
+# 2. 下载并安装 MuseScore 4（最新稳定版）
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-x86_64.AppImage \
+    && chmod +x MuseScore-4.2.1.240530503-x86_64.AppImage \
+    && ./MuseScore-4.2.1.240530503-x86_64.AppImage --appimage-extract \
+    && mv squashfs-root /opt/musescore \
+    && ln -s /opt/musescore/AppRun /usr/local/bin/musescore \
+    && ln -s /opt/musescore/AppRun /usr/local/bin/mscore \
+    && rm MuseScore-4.2.1.240530503-x86_64.AppImage
 
 # 2. 验证安装
 RUN mscore --version || echo "MuseScore版本信息"
