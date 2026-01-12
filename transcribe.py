@@ -12,16 +12,14 @@ class MusicTranscriber:
         print("🎹 音乐转录器初始化...")
         # 这里可以加载模型或初始化资源
     
-    def transcribe_audio(self, audio_path, output_midi=None):
+    def transcribe_audio(self, audio_path, output_midi=None, upload_folder=None):
         """
         转录音频文件为MIDI
         
         参数:
             audio_path: 音频文件路径
             output_midi: 输出MIDI路径（可选）
-        
-        返回:
-            dict: 包含转录结果的信息
+            upload_folder: 上传文件夹路径（可选，用于移动文件）
         """
         print(f"开始转录: {audio_path}")
         
@@ -46,16 +44,25 @@ class MusicTranscriber:
             # 3. 分析结果
             notes_count = len(midi_data.instruments[0].notes) if midi_data.instruments else 0
             
+            # 如果指定了上传文件夹，移动文件
+            final_midi_path = output_midi
+            if upload_folder:
+                import shutil
+                # 只取文件名，不要路径
+                filename = os.path.basename(output_midi)
+                target_path = os.path.join(upload_folder, filename)
+                shutil.move(output_midi, target_path)
+                final_midi_path = target_path
+            
             result = {
                 'success': True,
-                'midi_path': output_midi,
+                'midi_path': final_midi_path,
                 'notes_count': notes_count,
                 'message': '转录成功'
             }
             
-            print(f"✅ 转录完成！生成 {notes_count} 个音符")
             return result
-            
+
         except Exception as e:
             print(f"❌ 转录失败: {e}")
             return {

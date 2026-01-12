@@ -101,17 +101,17 @@ def transcribe_audio():
         
         # 转录音频
         print("开始转录处理...")
-        result = transcriber.transcribe_audio(filepath)
+        result = transcriber.transcribe_audio(filepath, upload_folder=app.config['UPLOAD_FOLDER'])
         
         if result['success']:
-            # 生成下载文件名
-            download_filename = f"transcribed_{os.path.splitext(filename)[0]}.mid"
+            # 生成下载文件名（现在文件已经在uploads目录）
+            download_filename = os.path.basename(result['midi_path'])
             
             response_data = {
                 'success': True,
                 'message': '音频转录成功',
                 'filename': download_filename,
-                'real_path': result['midi_path'],  # 服务器上的真实路径
+                'real_path': result['midi_path'],
                 'notes_count': result['notes_count'],
                 'original_filename': filename,
                 'file_size': file_size
