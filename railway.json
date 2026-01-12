@@ -7,6 +7,7 @@
     "startCommand": "python server.py",
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/",
-    "healthcheckTimeout": 60
+    "healthcheckTimeout": 200,
+    "healthcheckInterval": 10     
   }
 }
