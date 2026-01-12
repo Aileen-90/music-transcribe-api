@@ -3,29 +3,36 @@ FROM python:3.10-slim
 
 # 安装必要的依赖
 RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libxi6 \
-    libxcb1 \
     wget \
-    libfuse2 \
+    xvfb \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libnss3 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxi6 \
+    libxtst6 \
+    libxrandr2 \
+    libasound2 \
+    libgbm1 \
+    fonts-dejavu \
+    # 清理缓存
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 使用特殊的提取方法
-RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/MuseScore-3.5.2.210621-x86_64.AppImage \
-    && chmod +x MuseScore-3.5.2.210621-x86_64.AppImage \
-    # 使用 appimage 自带的提取工具
-    && ./MuseScore-3.5.2.210621-x86_64.AppImage --appimage-extract \
-    && mv squashfs-root/usr/bin/mscore /usr/local/bin/ \
-    && mv squashfs-root/usr/share/musescore /usr/share/ \
-    && rm -rf MuseScore-3.5.2.210621-x86_64.AppImage squashfs-root
-
-# 3. 设置环境变量
-ENV QT_QPA_PLATFORM=offscreen
-ENV DISPLAY=:99
+# 2. 安装 MuseScore（直接下载二进制版本，避免 AppImage 问题）
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/mscore-3.5.2-x86_64.AppImage \
+    && chmod +x mscore-3.5.2-x86_64.AppImage \
+    # 提取 AppImage
+    && ./mscore-3.5.2-x86_64.AppImage --appimage-extract \
+    # 复制 MuseScore 二进制文件
+    && cp squashfs-root/usr/bin/mscore /usr/local/bin/ \
+    && cp -r squashfs-root/usr/share/musescore /usr/share/ \
+    && cp -r squashfs-root/usr/lib/* /usr/lib/ 2>/dev/null || true \
+    # 创建符号链接
+    && ln -sf /usr/local/bin/mscore /usr/local/bin/musescore \
+    # 清理
+    && rm -rf mscore-3.5.2-x86_64.AppImage squashfs-root
 
 # 4. 验证安装
 RUN mscore --version || echo "MuseScore 3.5.2 installed"
