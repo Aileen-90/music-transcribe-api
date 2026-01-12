@@ -1,22 +1,27 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装依赖
+# 安装必要的依赖
 RUN apt-get update && apt-get install -y \
-    wget \
-    ca-certificates \
-    tar \
-    xz-utils \
-    libgl1 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libxi6 \
     && rm -rf /var/lib/apt/lists/*
 
-# 直接从官方MuseScore Docker镜像复制二进制文件
-COPY --from=musescore/musescore:latest /usr/bin/mscore /usr/local/bin/mscore
-# 或者复制整个安装目录
-COPY --from=musescore/musescore:latest /usr/share/musescore /usr/share/musescore
+# 从可用的 MuseScore 镜像复制文件
+COPY --from=musescore/musescore-x86_64:3.5 /usr/bin/mscore /usr/local/bin/mscore
+COPY --from=musescore/musescore-x86_64:3.5 /usr/share/musescore /usr/share/musescore
+COPY --from=musescore/musescore-x86_64:3.5 /usr/lib/ /usr/lib/
 
-# 3. 验证
-RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 安装完成"
+# 设置无头模式环境变量
+ENV QT_QPA_PLATFORM=offscreen
+ENV DISPLAY=:99
+
+# 验证安装
+RUN mscore --version || echo "MuseScore installed"
 
 # 5. 设置工作目录
 WORKDIR /app
