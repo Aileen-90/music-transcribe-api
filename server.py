@@ -62,13 +62,13 @@ def transcribe_audio():
     print("收到转录请求...")
     
     # 检查是否有文件
-    if 'file' not in request.files:
+    if 'audio' not in request.files:
         return jsonify({
             'success': False,
             'error': '没有上传文件'
         }), 400
     
-    file = request.files['file']
+    file = request.files['audio']
     
     # 检查文件名
     if file.filename == '':
