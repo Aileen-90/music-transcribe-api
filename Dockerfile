@@ -1,15 +1,11 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装依赖（Debian 12 兼容版本）
+# 1. 安装最小依赖
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     libfuse2 \
-    libgl1 \
-    libglib2.0-0 \
-    libxcb1 \
-    libx11-6 \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. 下载并安装 MuseScore
