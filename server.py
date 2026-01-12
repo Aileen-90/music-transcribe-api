@@ -42,7 +42,7 @@ def home():
         }
     })
 
-@app.route('/api/health', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
     return jsonify({
