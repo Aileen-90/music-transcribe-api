@@ -1,9 +1,10 @@
-# Dockerfile
-FROM python:3.10-slim
+# Dockerfile - Railway 专用 MIDI转PDF服务
+FROM python:3.11-bullseye
 
-# 安装必要的依赖
+# 1. 安装系统依赖
 RUN apt-get update && apt-get install -y \
     wget \
+    fuse \
     xvfb \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -14,28 +15,31 @@ RUN apt-get update && apt-get install -y \
     libxtst6 \
     libxrandr2 \
     libasound2 \
-    libgbm1 \
-    fonts-dejavu \
-    # 清理缓存
+    libgbm-dev \
+    libxkbcommon-x11-0 \
+    libxrender1 \
+    libxxf86vm1 \
+    libfontconfig1 \
+    libfreetype6 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 安装 MuseScore（直接下载二进制版本，避免 AppImage 问题）
-RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/mscore-3.5.2-x86_64.AppImage \
-    && chmod +x mscore-3.5.2-x86_64.AppImage \
-    # 提取 AppImage
-    && ./mscore-3.5.2-x86_64.AppImage --appimage-extract \
-    # 复制 MuseScore 二进制文件
-    && cp squashfs-root/usr/bin/mscore /usr/local/bin/ \
-    && cp -r squashfs-root/usr/share/musescore /usr/share/ \
+# 2. 安装 MuseScore
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/MuseScore-3.5.2.312125617-x86_64.AppImage \
+    && chmod +x MuseScore-3.5.2.312125617-x86_64.AppImage \
+    && ./MuseScore-3.5.2.312125617-x86_64.AppImage --appimage-extract \
+    # 复制可执行文件
+    && cp squashfs-root/AppRun /usr/local/bin/mscore \
+    && chmod +x /usr/local/bin/mscore \
+    # 复制库文件
     && cp -r squashfs-root/usr/lib/* /usr/lib/ 2>/dev/null || true \
-    # 创建符号链接
+    # 创建必要的符号链接
     && ln -sf /usr/local/bin/mscore /usr/local/bin/musescore \
     # 清理
-    && rm -rf mscore-3.5.2-x86_64.AppImage squashfs-root
+    && rm -rf MuseScore-3.5.2.312125617-x86_64.AppImage squashfs-root
 
-# 4. 验证安装
-RUN mscore --version || echo "MuseScore 3.5.2 installed"
+# 3. 验证安装
+RUN ldd /usr/local/bin/mscore | grep -q "not found" && echo "警告：有未找到的依赖" || echo "依赖检查通过"
 
 # 5. 设置工作目录
 WORKDIR /app
