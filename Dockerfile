@@ -1,16 +1,18 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装依赖（包括 libfuse2）
+# 1. 安装依赖（Debian 12 兼容版本）
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     libfuse2 \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
+    libxcb1 \
+    libx11-6 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载并安装 MuseScore（使用 --appimage-extract-and-run）
+# 2. 下载并安装 MuseScore
 RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-x86_64.AppImage \
     && chmod +x MuseScore-4.2.1.240530503-x86_64.AppImage \
     && ./MuseScore-4.2.1.240530503-x86_64.AppImage --appimage-extract \
