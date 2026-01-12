@@ -1,14 +1,18 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装系统依赖和MuseScore
+# 1. 安装系统依赖
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
     gnupg \
     software-properties-common \
-    && wget -qO /usr/share/keyrings/musescore-keyring.gpg https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x6D2C9A8A9A5E9B8B \
-    && echo "deb [signed-by=/usr/share/keyrings/musescore-keyring.gpg] http://ppa.launchpad.net/mscore-ubuntu/mscore-stable/ubuntu focal main" >> /etc/apt/sources.list.d/musescore.list \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. 添加 MuseScore 仓库并安装
+RUN wget -qO /usr/share/keyrings/musescore-keyring.gpg https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x6D2C9A8A9A5E9B8B \
+    && echo "deb [signed-by=/usr/share/keyrings/musescore-keyring.gpg] http://ppa.launchpad.net/mscore-ubuntu/mscore-stable/ubuntu focal main" > /etc/apt/sources.list.d/musescore.list \
     && apt-get update \
     && apt-get install -y musescore \
     && rm -rf /var/lib/apt/lists/*
