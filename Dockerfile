@@ -1,7 +1,7 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装必要依赖（使用正确的 Debian 12 包名）
+# 1. 安装必要依赖
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
@@ -9,25 +9,17 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     libgl1 \
     libglib2.0-0 \
-    libxcb1 \
-    libx11-6 \
-    libxrender1 \
-    libfontconfig1 \
-    libxi6 \
-    libsm6 \
-    libice6 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载并解压 MuseScore tar.gz 包
-RUN wget -q https://ftp.osuosl.org/pub/musescore/releases/MuseScore-4.2/MuseScore-4.2.1.240530503-linux-x86_64.tar.xz \
+# 2. 从 GitHub 直接下载 MuseScore
+RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.2.1/MuseScore-4.2.1.240530503-linux-x86_64.tar.xz \
     && tar -xf MuseScore-4.2.1.240530503-linux-x86_64.tar.xz -C /opt \
     && mv /opt/MuseScore-4.2.1.240530503-linux-x86_64 /opt/musescore \
     && ln -s /opt/musescore/bin/mscore /usr/local/bin/mscore \
-    && ln -s /opt/musescore/bin/mscore /usr/local/bin/musescore \
     && rm MuseScore-4.2.1.240530503-linux-x86_64.tar.xz
 
-# 3. 验证安装
-RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 已安装到 /opt/musescore/"
+# 3. 验证
+RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 安装完成"
 
 # 5. 设置工作目录
 WORKDIR /app
