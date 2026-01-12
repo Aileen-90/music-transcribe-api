@@ -1,19 +1,24 @@
 # Dockerfile
 FROM python:3.10-slim
 
-# 1. 安装必要依赖
+# 1. 安装必要依赖（使用正确的 Debian 12 包名）
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     tar \
     xz-utils \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libxcb1 \
-    libxcb-xinerama0 \
+    libx11-6 \
+    libxrender1 \
+    libfontconfig1 \
+    libxi6 \
+    libsm6 \
+    libice6 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载并解压 MuseScore tar.gz 包（更可靠）
+# 2. 下载并解压 MuseScore tar.gz 包
 RUN wget -q https://ftp.osuosl.org/pub/musescore/releases/MuseScore-4.2/MuseScore-4.2.1.240530503-linux-x86_64.tar.xz \
     && tar -xf MuseScore-4.2.1.240530503-linux-x86_64.tar.xz -C /opt \
     && mv /opt/MuseScore-4.2.1.240530503-linux-x86_64 /opt/musescore \
@@ -22,7 +27,7 @@ RUN wget -q https://ftp.osuosl.org/pub/musescore/releases/MuseScore-4.2/MuseScor
     && rm MuseScore-4.2.1.240530503-linux-x86_64.tar.xz
 
 # 3. 验证安装
-RUN /opt/musescore/bin/mscore --version || echo "MuseScore 4.2.1 已安装到 /opt/musescore/"
+RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 已安装到 /opt/musescore/"
 
 # 5. 设置工作目录
 WORKDIR /app
