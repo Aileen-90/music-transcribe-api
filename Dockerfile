@@ -10,12 +10,10 @@ RUN apt-get update && apt-get install -y \
     libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 下载 MuseScore 4.1（确认存在的版本）
-RUN wget -q https://github.com/musescore/MuseScore/releases/download/v4.1.1/MuseScore-4.1.1.240424721-linux-x86_64.tar.xz -O musescore.tar.xz \
-    && tar -xf musescore.tar.xz -C /opt \
-    && mv /opt/MuseScore-4.1.1.240424721-linux-x86_64 /opt/musescore \
-    && ln -s /opt/musescore/bin/mscore /usr/local/bin/mscore \
-    && rm musescore.tar.xz
+# 直接从官方MuseScore Docker镜像复制二进制文件
+COPY --from=musescore/musescore:latest /usr/bin/mscore /usr/local/bin/mscore
+# 或者复制整个安装目录
+COPY --from=musescore/musescore:latest /usr/share/musescore /usr/share/musescore
 
 # 3. 验证
 RUN /opt/musescore/bin/mscore --version 2>/dev/null || echo "MuseScore 安装完成"
