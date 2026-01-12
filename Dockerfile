@@ -11,15 +11,16 @@ RUN apt-get update && apt-get install -y \
     libxi6 \
     libxcb1 \
     wget \
-    fuse \
+    libfuse2 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载并安装 MuseScore（绕过镜像复制问题）
+# 使用特殊的提取方法
 RUN wget -q https://github.com/musescore/MuseScore/releases/download/v3.5.2/MuseScore-3.5.2.210621-x86_64.AppImage \
     && chmod +x MuseScore-3.5.2.210621-x86_64.AppImage \
+    # 使用 appimage 自带的提取工具
     && ./MuseScore-3.5.2.210621-x86_64.AppImage --appimage-extract \
-    && cp squashfs-root/usr/bin/mscore /usr/local/bin/mscore \
-    && cp -r squashfs-root/usr/share/musescore /usr/share/ \
+    && mv squashfs-root/usr/bin/mscore /usr/local/bin/ \
+    && mv squashfs-root/usr/share/musescore /usr/share/ \
     && rm -rf MuseScore-3.5.2.210621-x86_64.AppImage squashfs-root
 
 # 3. 设置环境变量
