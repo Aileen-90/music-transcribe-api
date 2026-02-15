@@ -7,6 +7,13 @@ import uuid
 import subprocess
 from werkzeug.utils import secure_filename
 from transcribe import MusicTranscriber  # 导入我们的转录类
+import json
+import pretty_midi
+try:
+    from music21 import converter, stream, note, chord, meter, key
+except ImportError:
+    print("警告: music21 库未安装，将使用简化版乐谱解析")
+    converter = None
 
 app = Flask(__name__)
 CORS(app)  # 允许小程序跨域访问
@@ -203,6 +210,134 @@ def download_file(filename):
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/score-data/<filename>', methods=['GET'])
+def get_score_data(filename):
+    """获取乐谱渲染数据（VexFlow格式）"""
+    try:
+        safe_filename = secure_filename(filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({
+                'success': False,
+                'error': 'MIDI文件不存在'
+            }), 404
+        
+        # 解析MIDI文件生成乐谱数据
+        score_data = parse_midi_to_vexflow(filepath)
+        
+        return jsonify({
+            'success': True,
+            'score_data': score_data,
+            'filename': safe_filename
+        })
+        
+    except Exception as e:
+        print(f'乐谱数据生成失败: {e}')
+        return jsonify({
+            'success': False,
+            'error': f'乐谱数据生成失败: {str(e)}'
+        }), 500
+
+def parse_midi_to_vexflow(midi_path):
+    """将MIDI文件解析为VexFlow格式的乐谱数据"""
+    try:
+        # 使用pretty_midi解析MIDI
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
+        
+        # 提取乐谱信息
+        score_info = {
+            'title': '转录乐谱',
+            'composer': 'AI转录',
+            'time_signature': '4/4',
+            'key_signature': 'C',
+            'tempo': 120
+        }
+        
+        # 提取音符数据
+        notes_data = []
+        for instrument in midi_data.instruments:
+            for note_obj in instrument.notes:
+                # 使用安全的音符名称转换
+                pitch_name = get_note_name(note_obj.pitch)
+                notes_data.append({
+                    'pitch': pitch_name,
+                    'start_time': note_obj.start,
+                    'end_time': note_obj.end,
+                    'velocity': note_obj.velocity,
+                    'duration': note_obj.end - note_obj.start
+                })
+        
+        # 转换为VexFlow格式
+        vexflow_data = {
+            'staves': [{
+                'clef': 'treble',
+                'key': score_info['key_signature'],
+                'time': score_info['time_signature'],
+                'notes': convert_notes_to_vexflow(notes_data)
+            }]
+        }
+        
+        return vexflow_data
+        
+    except Exception as e:
+        print(f'MIDI解析错误: {e}')
+        # 返回简化数据作为备选
+        return get_fallback_score_data()
+
+def get_note_name(note_number):
+    """将音符编号转换为音符名称"""
+    # 简单的音符名称映射
+    note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    octave = note_number // 12 - 1
+    note_index = note_number % 12
+    return f"{note_names[note_index]}/{octave}"
+
+def convert_notes_to_vexflow(notes_data):
+    """将音符数据转换为VexFlow格式"""
+    vexflow_notes = []
+    
+    for note_obj in notes_data[:20]:  # 限制音符数量避免数据过大
+        pitch = note_obj['pitch'].replace('#', '#')
+        duration = get_note_duration(note_obj['duration'])
+        
+        vexflow_notes.append({
+            'keys': [pitch],
+            'duration': duration,
+            'stem_direction': 1
+        })
+    
+    return vexflow_notes
+
+def get_note_duration(duration):
+    """根据时长确定音符时值"""
+    if duration >= 1.0:
+        return 'w'  # 全音符
+    elif duration >= 0.5:
+        return 'h'  # 二分音符
+    elif duration >= 0.25:
+        return 'q'  # 四分音符
+    elif duration >= 0.125:
+        return '8'  # 八分音符
+    else:
+        return '16'  # 十六分音符
+
+def get_fallback_score_data():
+    """返回备用的简单乐谱数据"""
+    return {
+        'staves': [{
+            'clef': 'treble',
+            'key': 'C',
+            'time': '4/4',
+            'notes': [
+                {'keys': ['c/4'], 'duration': 'q', 'stem_direction': 1},
+                {'keys': ['d/4'], 'duration': 'q', 'stem_direction': 1},
+                {'keys': ['e/4'], 'duration': 'q', 'stem_direction': 1},
+                {'keys': ['f/4'], 'duration': 'q', 'stem_direction': 1}
+            ]
+        }]
+    }
 
 @app.route('/api/generate-pdf', methods=['POST'])
 def generate_pdf():
